@@ -1,0 +1,51 @@
+---
+- name: Patching-as-a-Service - Application checks/routines
+  hosts: localhost
+  connection: local
+  gather_facts: no
+
+  vars:
+    application_uri: ""
+    application_payload: ""
+    application_token: "{{ bearer_token }}"
+    application_check_ssl: false
+
+  tasks:
+    - name: Application execution block
+      block:
+        - name: Execute remote checks/routines
+          ansible.builtin.uri:
+            url: "{{ application_uri }}/launch/"
+            method: POST
+            body_format: json
+            body: "{{ application_payload }}"
+            status_code:
+              - 200
+              - 201
+              - 204
+            headers:
+              Content-Type: application/json
+              Authorization: "Bearer {{ application_token }}"
+            return_content: yes
+            validate_certs: "{{ application_check_ssl }}"
+          register: _app_output
+
+        - name: Display HTTP response
+          ansible.builtin.debug:
+            var: _app_output
+
+        - name: Set application_checks fact
+          ansible.builtin.set_fact:
+            application_checks: true
+            cacheable: yes
+      rescue:
+        - name: Set application_checks fact (rescue)
+          ansible.builtin.set_fact:
+            application_checks: false
+            cacheable: yes
+      when:
+        - application_uri is defined
+        - application_uri | length > 0
+        - application_token is defined
+        - application_token | length > 0
+      run_once: true

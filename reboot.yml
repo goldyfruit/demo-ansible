@@ -1,0 +1,34 @@
+---
+- name: Patching-as-a-Service - Reboot playbook
+  hosts: all
+  gather_facts: no
+
+  vars:
+    reboot_connection_timeout: 5
+    reboot_timeout: 3600
+    reboot_pre_delay: 0
+    reboot_post_delay: 5
+    reboot_test_command: whoami
+    reboot_message: "Reboot initiated by Ansible"
+
+  tasks:
+    - name: Reboot block
+      block:
+        - name: Reboot the host and wait for it to restart
+          ansible.builtin.reboot:
+            msg: "{{ reboot_message }}"
+            connect_timeout: "{{ reboot_connection_timeout }}"
+            reboot_timeout: "{{ reboot_timeout }}"
+            pre_reboot_delay: "{{ reboot_pre_delay }}"
+            post_reboot_delay: "{{ reboot_post_delay }}"
+            test_command: "{{ reboot_test_command }}"
+
+        - name: Set reboot_status fact
+          ansible.builtin.set_fact:
+            reboot_status: true
+            cacheable: yes
+      rescue:
+        - name: Set reboot_status fact (rescue)
+          ansible.builtin.set_fact:
+            reboot_status: false
+            cacheable: yes
